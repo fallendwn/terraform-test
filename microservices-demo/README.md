@@ -167,3 +167,13 @@ Find **Protocol Buffers Descriptions** at the [`./protos` directory](/protos).
 - [Google Cloud Next'18 London – Keynote](https://youtu.be/nIq2pkNcfEI?t=3071)
   showing Stackdriver Incident Response Management
 - [Microservices demo showcasing Go Micro](https://github.com/go-micro/demo)
+
+- ## Added Features
+
+### Authentication
+
+To enhance security, the microservices demo now includes authentication mechanisms, ensuring that only authorized users can access the system. The authentication process utilizes industry-standard protocols, providing robust user verification without compromising performance.
+
+### Grafana/Prometheus Monitoring
+
+The integration of Grafana and Prometheus allows for real-time monitoring of the microservices. Metrics collected by Prometheus will be visualized in Grafana dashboards, offering insights into performance statistics, system health, and usage patterns. This setup enables proactive identification of issues and optimizes resource management.
