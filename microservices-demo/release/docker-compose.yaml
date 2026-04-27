@@ -1,0 +1,197 @@
+version: '3.8'
+
+services:
+
+  gateway:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - auth-frontend
+      - authservice
+    networks:
+      - microservices-net
+
+  frontend:
+    image: gcr.io/google-samples/microservices-demo/frontend:v0.8.0
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+      - ENV_PLATFORM=local
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - CURRENCY_SERVICE_ADDR=currencyservice:7000
+      - CART_SERVICE_ADDR=cartservice:7070
+      - RECOMMENDATION_SERVICE_ADDR=recommendationservice:8080
+      - SHIPPING_SERVICE_ADDR=shippingservice:50051
+      - CHECKOUT_SERVICE_ADDR=checkoutservice:5050
+      - AD_SERVICE_ADDR=adservice:9555
+    depends_on:
+      - productcatalogservice
+      - currencyservice
+      - cartservice
+      - recommendationservice
+      - shippingservice
+      - checkoutservice
+      - adservice
+    networks:
+      - microservices-net
+
+  authservice:
+    build:
+      context: ./authservice
+      dockerfile: Dockerfile
+    expose:
+      - "8081"
+    environment:
+      - SECRET_KEY=supersecretkey1234567890abcdef
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  auth-frontend:
+    build:
+      context: ./authservice/frontend
+      dockerfile: Dockerfile
+    expose:
+      - "8082"
+    depends_on:
+      - authservice
+    networks:
+      - microservices-net
+
+  productcatalogservice:
+    image: gcr.io/google-samples/microservices-demo/productcatalogservice:v0.8.0
+    environment:
+      - PORT=3550
+    networks:
+      - microservices-net
+
+  currencyservice:
+    image: gcr.io/google-samples/microservices-demo/currencyservice:v0.8.0
+    environment:
+      - PORT=7000
+      - DISABLE_PROFILER=1
+    networks:
+      - microservices-net
+
+  cartservice:
+    image: gcr.io/google-samples/microservices-demo/cartservice:v0.8.0
+    environment:
+      - REDIS_ADDR=redis-cart:6379
+    depends_on:
+      - redis-cart
+    networks:
+      - microservices-net
+
+  redis-cart:
+    image: redis:7-alpine
+    networks:
+      - microservices-net
+
+  recommendationservice:
+    image: gcr.io/google-samples/microservices-demo/recommendationservice:v0.8.0
+    environment:
+      - PORT=8080
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - DISABLE_PROFILER=1
+    depends_on:
+      - productcatalogservice
+    networks:
+      - microservices-net
+
+  shippingservice:
+    image: gcr.io/google-samples/microservices-demo/shippingservice:v0.8.0
+    environment:
+      - PORT=50051
+    networks:
+      - microservices-net
+
+  checkoutservice:
+    image: gcr.io/google-samples/microservices-demo/checkoutservice:v0.8.0
+    environment:
+      - PORT=5050
+      - PRODUCT_CATALOG_SERVICE_ADDR=productcatalogservice:3550
+      - SHIPPING_SERVICE_ADDR=shippingservice:50051
+      - PAYMENT_SERVICE_ADDR=paymentservice:50051
+      - EMAIL_SERVICE_ADDR=emailservice:8080
+      - CURRENCY_SERVICE_ADDR=currencyservice:7000
+      - CART_SERVICE_ADDR=cartservice:7070
+    depends_on:
+      - productcatalogservice
+      - shippingservice
+      - paymentservice
+      - emailservice
+      - currencyservice
+      - cartservice
+    networks:
+      - microservices-net
+
+  paymentservice:
+    image: gcr.io/google-samples/microservices-demo/paymentservice:v0.8.0
+    environment:
+      - PORT=50051
+      - DISABLE_PROFILER=1
+    networks:
+      - microservices-net
+
+  emailservice:
+    image: gcr.io/google-samples/microservices-demo/emailservice:v0.8.0
+    environment:
+      - PORT=8080
+      - DISABLE_PROFILER=1
+    networks:
+      - microservices-net
+
+  adservice:
+    image: gcr.io/google-samples/microservices-demo/adservice:v0.8.0
+    environment:
+      - PORT=9555
+    networks:
+      - microservices-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - microservices-net
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:
