@@ -16,3 +16,23 @@ scrape_configs:
     static_configs:
       - targets: ['frontend:8080']
     metrics_path: /metrics
+
+  - job_name: 'cartservice'
+    static_configs:
+      - targets: ['cartservice:7070']
+    metrics_path: /metrics
+
+  - job_name: 'checkoutservice'
+    static_configs:      
+      - targets: ['checkoutservice:5050']
+    metrics_path: /metrics
+
+  - job_name: 'productcatalogservice'
+    static_configs:
+      - targets: ['productcatalogservice:3550']
+    metrics_path: /metrics
+
+  - job_name: 'adservice'
+    static_configs:
+      - targets: ['adservice:9555']
+    metrics_path: /metrics
